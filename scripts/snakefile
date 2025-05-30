@@ -1,0 +1,46 @@
+CELLTYPES = ["ActiveStellate", "Delta", "Acinar", "Beta", "Ductal", "Alpha"]
+NCELLS = [20]
+N_LATENT = {"ActiveStellate": 24, "Delta": 24, "Acinar": 30, "Beta": 30, "Ductal": 30, "Alpha": 30}
+
+rule targets:
+	input:
+		expand("/nfs/turbo/umms-scjp-pank/5_DEG/results/ruvseq_analysis/20250516_ncells{ncell}_minreads10_minprop0.25_withoutAAB/{cell}_celltype_ruvseq.Rds", cell = CELLTYPES, ncell = NCELLS)
+
+rule ruvseq:
+	input:
+		expand("/nfs/turbo/umms-scjp-pank/5_DEG/results/cell_proposition/cell.prop_{{cell}}.txt", cell = CELLTYPES)	
+	output:
+		expand("/nfs/turbo/umms-scjp-pank/5_DEG/results/ruvseq_analysis/20250516_ncells{{ncell}}_minreads10_minprop0.25_withoutAAB/{{cell}}_celltype_ruvseq.Rds", cell = CELLTYPES, ncell = NCELLS)
+	params:
+		cell = lambda wildcards: wildcards.cell,
+		ncell = lambda wildcards: wildcards.ncell,
+		nlatent = lambda wcs: N_LATENT[wcs.cell]
+	log:
+		stdout = "/nfs/turbo/umms-scjp-pank/5_DEG/results/ruvseq_analysis/20250516_ncells{ncell}_minreads10_minprop0.25_withoutAAB/{cell}_warnings.out",
+		stderr = "/nfs/turbo/umms-scjp-pank/5_DEG/results/ruvseq_analysis/20250516_ncells{ncell}_minreads10_minprop0.25_withoutAAB/{cell}_warnings.err"
+	shell:
+		"""
+		cd /nfs/turbo/umms-scjp-pank/5_DEG/results/ruvseq_analysis/
+		ml R/4.3.1
+		Rscript /nfs/turbo/umms-scjp-pank/5_DEG/scripts/ruvseq.R --celltype {params.cell} --ncells {params.ncell} --minreads 10 --minprop 0.25 --nlatent {params.nlatent} --outdir /nfs/turbo/umms-scjp-pank/5_DEG/results/ruvseq_analysis/20250516_ncells20_minreads10_minprop0.25_withoutAAB/ > {log.stdout} 3> {log.stderr} 
+		touch {output}
+		"""
+
+rule deg:
+	input:
+		expand("/nfs/turbo/umms-scjp-pank/5_DEG/results/cell_proposition/cell.prop_{{cell}}.txt", cell = CELLTYPES)	
+	output:
+		expand("/nfs/turbo/umms-scjp-pank/5_DEG/results/ruvseq_analysis/20250516_ncells{{ncell}}_minreads10_minprop0.25_withoutAAB/{{cell}}_k-chosen_fdr0.05_deg.txt", cell = CELLTYPES, ncell = NCELLS)
+	params:
+		cell = lambda wildcards: wildcards.cell,
+		ncell = lambda wildcards: wildcards.ncell,
+	log:
+		stdout = "/nfs/turbo/umms-scjp-pank/5_DEG/results/ruvseq_analysis/20250516_ncells{ncell}_minreads10_minprop0.25_withoutAAB/{cell}_warnings.out",
+		stderr = "/nfs/turbo/umms-scjp-pank/5_DEG/results/ruvseq_analysis/20250516_ncells{ncell}_minreads10_minprop0.25_withoutAAB/{cell}_warnings.err"
+	shell:
+		"""
+		cd /nfs/turbo/umms-scjp-pank/5_DEG/results/ruvseq_analysis/
+		ml R/4.3.1
+		Rscript /nfs/turbo/umms-scjp-pank/5_DEG/scripts/t1d_nd_ruvseq.R --celltype {params.cell} --ncells {params.ncell} --minreads 10 --minprop 0.25 --outdir /nfs/turbo/umms-scjp-pank/5_DEG/results/ruvseq_analysis/20250516_ncells20_minreads10_minprop0.25_withoutAAB/ > {log.stdout} 3> {log.stderr} 
+		touch {output}
+		"""
